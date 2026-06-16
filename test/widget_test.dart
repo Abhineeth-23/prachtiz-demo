@@ -1,30 +1,36 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:prachtiz_flutter/main.dart';
+import 'package:prachtiz_flutter/app/app.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
+  testWidgets('Clinic Dashboard app smoke test', (WidgetTester tester) async {
+    // Configure a standard desktop viewport size for the dashboard smoke test
+    tester.view.physicalSize = const Size(1920, 1080);
+    tester.view.devicePixelRatio = 1.0;
+    
+    // Reset viewport size back to default after test run finishes
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+
     // Build our app and trigger a frame.
     await tester.pumpWidget(const MyApp());
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    // Allow entry animations to run and complete
+    await tester.pump(const Duration(seconds: 2));
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    // Verify today's schedule header renders
+    expect(find.text("Today's Schedule"), findsOneWidget);
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    // Verify metrics exist
+    expect(find.text('TOTAL APPOINTMENTS TODAY'), findsOneWidget);
+    expect(find.text('UPCOMING THIS WEEK'), findsOneWidget);
+
+    // Verify calendar renders
+    expect(find.text('June 2026'), findsOneWidget);
+
+    // Verify patient queue list item renders
+    expect(find.text('Adrian Marshall'), findsOneWidget);
   });
 }
