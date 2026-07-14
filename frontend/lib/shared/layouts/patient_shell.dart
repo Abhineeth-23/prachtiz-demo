@@ -171,10 +171,7 @@ class PatientShell extends StatelessWidget {
           ),
           // Content
           Expanded(
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 250),
-              child: KeyedSubtree(key: ValueKey(activeRoute), child: child),
-            ),
+            child: child,
           ),
         ],
       ),

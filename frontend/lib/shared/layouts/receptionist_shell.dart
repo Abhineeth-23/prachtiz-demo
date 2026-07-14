@@ -196,10 +196,7 @@ class _ReceptionistShellState extends State<ReceptionistShell> {
         children: [
           if (!isMobile) sidebar,
           Expanded(
-            child: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 250),
-              child: KeyedSubtree(key: ValueKey(widget.activeRoute), child: widget.child),
-            ),
+            child: widget.child,
           ),
         ],
       ),
