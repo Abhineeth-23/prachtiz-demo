@@ -422,15 +422,11 @@ class _LogoPanel extends StatelessWidget {
       curve: Curves.easeInOutCubic,
       width: panelWidth,
       decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-          colors: [Color(0xFF13294B), Color(0xFF5D6E8C)],
-        ),
+        color: Colors.white,
         border: Border(
-          right: BorderSide(color: Color(0xFF1E293B), width: 1.0),
+          right: BorderSide(color: Color(0xFFE2E8F0), width: 1.0),
           bottom: BorderSide(
-            color: Color(0xFF24C06F), // Bright green line under the logo panel
+            color: Color(0xFF1E3A8A), // Royal blue bottom border to match rest of topbar
             width: 3.5,
           ),
         ),
@@ -549,7 +545,7 @@ class _PraCHtizText extends StatelessWidget {
           children: [
             Text('Pra',
                 style: GoogleFonts.poppins(
-                    color: Colors.white,
+                    color: const Color(0xFF13294B),
                     fontSize: 15,
                     fontWeight: FontWeight.bold,
                     letterSpacing: 0)),
@@ -561,7 +557,7 @@ class _PraCHtizText extends StatelessWidget {
                     letterSpacing: 0)),
             Text('tiz',
                 style: GoogleFonts.poppins(
-                    color: Colors.white,
+                    color: const Color(0xFF13294B),
                     fontSize: 15,
                     fontWeight: FontWeight.bold,
                     letterSpacing: 0)),
@@ -570,7 +566,7 @@ class _PraCHtizText extends StatelessWidget {
         Text(
           'A Product by CallHealth',
           style: GoogleFonts.inter(
-            color: Colors.white70,
+            color: const Color(0xFF475569),
             fontSize: 6.5,
             fontWeight: FontWeight.w600,
             letterSpacing: 0,
