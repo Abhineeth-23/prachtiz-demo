@@ -7,13 +7,120 @@ import '../../domain/models/summary_card_model.dart';
 import '../../data/dummy/dashboard_dummy.dart';
 
 class SummarySection extends StatelessWidget {
-  const SummarySection({super.key});
+  final int appointmentsToday;
+  final int upcomingThisWeek;
+  final int videoConsultations;
+  final int walkInAppointments;
+  final int firstTimePatients;
+  final int repeatPatients;
+  final int rescheduled;
+  final int cancelled;
+
+  const SummarySection({
+    super.key,
+    required this.appointmentsToday,
+    required this.upcomingThisWeek,
+    required this.videoConsultations,
+    required this.walkInAppointments,
+    required this.firstTimePatients,
+    required this.repeatPatients,
+    required this.rescheduled,
+    required this.cancelled,
+  });
+
+  SummaryCardModel _totalAppointmentsCard() => SummaryCardModel(
+    title: "TOTAL APPOINTMENTS TODAY",
+    value: appointmentsToday.toString().padLeft(2, '0'),
+    changePercentage: 0.0,
+    isPositive: true,
+    icon: Icons.calendar_today_outlined,
+    iconColor: AppColors.white,
+    iconBgColor: AppColors.primaryDark,
+    sparklineData: [],
+  );
+
+  SummaryCardModel _upcomingThisWeekCard() => SummaryCardModel(
+    title: "UPCOMING THIS WEEK",
+    value: upcomingThisWeek.toString().padLeft(2, '0'),
+    changePercentage: 0.0,
+    isPositive: true,
+    icon: Icons.event_note_outlined,
+    iconColor: AppColors.white,
+    iconBgColor: Colors.transparent,
+    sparklineData: [],
+  );
+
+  List<SummaryCardModel> _middleCards() => [
+    SummaryCardModel(
+      title: "Video Consultations",
+      value: videoConsultations.toString().padLeft(2, '0'),
+      changePercentage: 0.0,
+      isPositive: true,
+      icon: Icons.videocam_outlined,
+      iconColor: AppColors.primary,
+      iconBgColor: Colors.transparent,
+      sparklineData: [],
+    ),
+    SummaryCardModel(
+      title: "Walk-in Appointments",
+      value: walkInAppointments.toString().padLeft(2, '0'),
+      changePercentage: 0.0,
+      isPositive: true,
+      icon: Icons.directions_walk,
+      iconColor: AppColors.secondary,
+      iconBgColor: Colors.transparent,
+      sparklineData: [],
+    ),
+    SummaryCardModel(
+      title: "First Time Patients",
+      value: firstTimePatients.toString().padLeft(2, '0'),
+      changePercentage: 0.0,
+      isPositive: true,
+      icon: Icons.person_add_alt_1_outlined,
+      iconColor: AppColors.purple,
+      iconBgColor: Colors.transparent,
+      sparklineData: [],
+    ),
+    SummaryCardModel(
+      title: "Repeat Patients",
+      value: repeatPatients.toString().padLeft(2, '0'),
+      changePercentage: 0.0,
+      isPositive: true,
+      icon: Icons.group_outlined,
+      iconColor: AppColors.info,
+      iconBgColor: Colors.transparent,
+      sparklineData: [],
+    ),
+    SummaryCardModel(
+      title: "Rescheduled",
+      value: rescheduled.toString().padLeft(2, '0'),
+      changePercentage: 0.0,
+      isPositive: true,
+      icon: Icons.restore_outlined,
+      iconColor: AppColors.warning,
+      iconBgColor: Colors.transparent,
+      sparklineData: [],
+    ),
+    SummaryCardModel(
+      title: "Cancelled",
+      value: cancelled.toString().padLeft(2, '0'),
+      changePercentage: 0.0,
+      isPositive: false,
+      icon: Icons.cancel_outlined,
+      iconColor: AppColors.danger,
+      iconBgColor: Colors.transparent,
+      sparklineData: [],
+    ),
+  ];
 
   @override
   Widget build(BuildContext context) {
     final double screenWidth = MediaQuery.sizeOf(context).width;
     final bool isDesktop = screenWidth >= 1100;
     final bool isTablet = screenWidth >= 650 && screenWidth < 1100;
+
+    final totalApptsCard = _totalAppointmentsCard();
+    final upcomingCard = _upcomingThisWeekCard();
 
     if (isDesktop) {
       return IntrinsicHeight(
@@ -24,7 +131,7 @@ class SummarySection extends StatelessWidget {
             Expanded(
               flex: 3,
               child: _buildLargeMetricCard(
-                card: DashboardDummy.totalAppointments,
+                card: totalApptsCard,
                 isDarkNavy: true,
               ),
             ),
@@ -41,7 +148,7 @@ class SummarySection extends StatelessWidget {
             Expanded(
               flex: 3,
               child: _buildLargeMetricCard(
-                card: DashboardDummy.upcomingThisWeek,
+                card: upcomingCard,
                 isGreenGradient: true,
               ),
             ),
@@ -55,14 +162,14 @@ class SummarySection extends StatelessWidget {
             children: [
               Expanded(
                 child: _buildLargeMetricCard(
-                  card: DashboardDummy.totalAppointments,
+                  card: totalApptsCard,
                   isDarkNavy: true,
                 ),
               ),
               const SizedBox(width: 16),
               Expanded(
                 child: _buildLargeMetricCard(
-                  card: DashboardDummy.upcomingThisWeek,
+                  card: upcomingCard,
                   isGreenGradient: true,
                 ),
               ),
@@ -77,14 +184,14 @@ class SummarySection extends StatelessWidget {
       return Column(
         children: [
           _buildLargeMetricCard(
-            card: DashboardDummy.totalAppointments,
+            card: totalApptsCard,
             isDarkNavy: true,
           ),
           const SizedBox(height: 16),
           _buildSubCardsGrid(16, columns: 2),
           const SizedBox(height: 16),
           _buildLargeMetricCard(
-            card: DashboardDummy.upcomingThisWeek,
+            card: upcomingCard,
             isGreenGradient: true,
           ),
         ],
@@ -106,7 +213,7 @@ class SummarySection extends StatelessWidget {
 
   Widget _buildSubCardsGrid(double spacing, {required int columns}) {
     List<Widget> rows = [];
-    List<SummaryCardModel> cards = DashboardDummy.middleCards;
+    List<SummaryCardModel> cards = _middleCards();
     
     for (int i = 0; i < cards.length; i += columns) {
       List<Widget> rowChildren = [];
@@ -274,7 +381,7 @@ class _InteractiveMetricCardState extends State<_InteractiveMetricCard> with Sin
                             curve: Curves.easeOutBack,
                             builder: (context, value, child) {
                               return Opacity(
-                                opacity: value,
+                                opacity: value.clamp(0.0, 1.0),
                                 child: Transform.translate(
                                   offset: Offset(0, 12 * (1.0 - value)),
                                   child: child,
@@ -443,7 +550,7 @@ class _InteractiveSubCardState extends State<_InteractiveSubCard> {
                     curve: Curves.easeOutCubic,
                     builder: (context, value, child) {
                       return Opacity(
-                        opacity: value,
+                        opacity: value.clamp(0.0, 1.0),
                         child: Transform.translate(
                           offset: Offset(0, 10 * (1.0 - value)),
                           child: child,

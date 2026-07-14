@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../theme/colors.dart';
 import '../../../../theme/styles.dart';
 import '../../../../shared/services/settings_manager.dart';
+import '../../../../shared/services/auth_service.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../shared/widgets/app_avatar.dart';
 class SettingsScreen extends StatefulWidget {
@@ -77,13 +78,41 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   void initState() {
     super.initState();
+    final auth = AuthService.instance;
+    final session = auth.session;
     final settings = SettingsManager.instance;
-    _firstNameController = TextEditingController(text: settings.firstName);
-    _lastNameController = TextEditingController(text: settings.lastName);
-    _emailController = TextEditingController(text: settings.email);
-    _phoneController = TextEditingController(text: settings.phone);
-    _specialtyController = TextEditingController(text: settings.specialty);
-    _licenseController = TextEditingController(text: settings.license);
+
+    String fName = settings.firstName;
+    String lName = settings.lastName;
+    String email = settings.email;
+    String phone = settings.phone;
+    String spec = settings.specialty;
+    String lic = settings.license;
+
+    if (session != null) {
+      fName = session.firstName;
+      lName = session.lastName;
+      email = session.email;
+      phone = session.profile['phone'] ?? '';
+      
+      if (session.role == UserRole.doctor) {
+        spec = session.profile['specialty'] ?? '';
+        lic = session.profile['license'] ?? '';
+      } else if (session.role == UserRole.receptionist) {
+        spec = session.profile['department'] ?? '';
+        lic = session.profile['employee_id'] ?? '';
+      } else if (session.role == UserRole.patient) {
+        spec = session.profile['condition'] ?? '';
+        lic = session.profile['insurance_partner'] ?? '';
+      }
+    }
+
+    _firstNameController = TextEditingController(text: fName);
+    _lastNameController = TextEditingController(text: lName);
+    _emailController = TextEditingController(text: email);
+    _phoneController = TextEditingController(text: phone);
+    _specialtyController = TextEditingController(text: spec);
+    _licenseController = TextEditingController(text: lic);
 
     _notifSmsAlerts = settings.smsAlerts;
     _notifWhatsAppAlerts = settings.whatsAppAlerts;
@@ -123,22 +152,46 @@ class _SettingsScreenState extends State<SettingsScreen> {
     "Amber Glow",
   ];
 
-  void _saveChanges() {
-    SettingsManager.instance.updateProfile(
-      firstName: _firstNameController.text,
-      lastName: _lastNameController.text,
-      email: _emailController.text,
-      phone: _phoneController.text,
-      specialty: _specialtyController.text,
-      license: _licenseController.text,
-    );
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Profile settings saved successfully."),
-        backgroundColor: Color(0xFF24C06F),
-        duration: Duration(seconds: 2),
-      ),
-    );
+  Future<void> _saveChanges() async {
+    final auth = AuthService.instance;
+    final session = auth.session;
+    if (session == null) return;
+
+    final payload = <String, dynamic>{
+      'first_name': _firstNameController.text.trim(),
+      'last_name': _lastNameController.text.trim(),
+      'phone': _phoneController.text.trim(),
+    };
+
+    if (session.role == UserRole.doctor) {
+      payload['specialty'] = _specialtyController.text.trim();
+      payload['license'] = _licenseController.text.trim();
+    } else if (session.role == UserRole.receptionist) {
+      payload['department'] = _specialtyController.text.trim();
+      payload['employee_id'] = _licenseController.text.trim();
+    } else if (session.role == UserRole.patient) {
+      payload['insurance_partner'] = _licenseController.text.trim();
+    }
+
+    final ok = await auth.updateProfile(payload);
+    if (!mounted) return;
+    if (ok) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Profile settings saved successfully."),
+          backgroundColor: Color(0xFF24C06F),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(auth.error ?? "Failed to save settings."),
+          backgroundColor: Colors.redAccent,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   void _saveNotifications() {
@@ -478,6 +531,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
           LayoutBuilder(
             builder: (context, constraints) {
               final isSmall = constraints.maxWidth < 600;
+              final auth = AuthService.instance;
+              final role = auth.session?.role ?? UserRole.doctor;
+              
+              String label5 = "SPECIALTY";
+              String label6 = "LICENSE NO.";
+              bool isLabel5ReadOnly = false;
+
+              if (role == UserRole.receptionist) {
+                label5 = "DEPARTMENT";
+                label6 = "EMPLOYEE ID";
+              } else if (role == UserRole.patient) {
+                label5 = "MEDICAL CONDITION";
+                label6 = "INSURANCE PARTNER";
+                isLabel5ReadOnly = true;
+              }
+
               return Column(
                 children: [
                   if (isSmall) ...[
@@ -485,13 +554,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     const SizedBox(height: 24),
                     _buildInputField("LAST NAME", _lastNameController),
                     const SizedBox(height: 24),
-                    _buildInputField("EMAIL", _emailController),
+                    _buildInputField("EMAIL", _emailController, enabled: false),
                     const SizedBox(height: 24),
                     _buildInputField("PHONE", _phoneController),
                     const SizedBox(height: 24),
-                    _buildInputField("SPECIALTY", _specialtyController),
+                    _buildInputField(label5, _specialtyController, enabled: !isLabel5ReadOnly),
                     const SizedBox(height: 24),
-                    _buildInputField("LICENSE NO.", _licenseController),
+                    _buildInputField(label6, _licenseController),
                   ] else ...[
                     Row(
                       children: [
@@ -503,7 +572,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     const SizedBox(height: 24),
                     Row(
                       children: [
-                        Expanded(child: _buildInputField("EMAIL", _emailController)),
+                        Expanded(child: _buildInputField("EMAIL", _emailController, enabled: false)),
                         const SizedBox(width: 24),
                         Expanded(child: _buildInputField("PHONE", _phoneController)),
                       ],
@@ -511,9 +580,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     const SizedBox(height: 24),
                     Row(
                       children: [
-                        Expanded(child: _buildInputField("SPECIALTY", _specialtyController)),
+                        Expanded(child: _buildInputField(label5, _specialtyController, enabled: !isLabel5ReadOnly)),
                         const SizedBox(width: 24),
-                        Expanded(child: _buildInputField("LICENSE NO.", _licenseController)),
+                        Expanded(child: _buildInputField(label6, _licenseController)),
                       ],
                     ),
                   ]
@@ -1081,7 +1150,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildInputField(String label, TextEditingController controller) {
+  Widget _buildInputField(String label, TextEditingController controller, {bool enabled = true}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1089,21 +1158,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
         const SizedBox(height: 8),
         TextField(
           controller: controller,
-          style: GoogleFonts.inter(color: Colors.white, fontSize: 13),
+          enabled: enabled,
+          style: GoogleFonts.inter(color: enabled ? Colors.white : Colors.white30, fontSize: 13),
           decoration: InputDecoration(
             filled: true,
-            fillColor: const Color(0xFF1E2548),
+            fillColor: enabled ? const Color(0xFF1E2548) : const Color(0xFF161B35),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
               borderSide: BorderSide.none,
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: enabled ? Colors.white12 : Colors.transparent),
+            ),
+            disabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
               borderSide: const BorderSide(color: Colors.white12),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: AppColors.primary),
+              borderSide: BorderSide(color: enabled ? AppColors.primary : Colors.transparent),
             ),
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           ),

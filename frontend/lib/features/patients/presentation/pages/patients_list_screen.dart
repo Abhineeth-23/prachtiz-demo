@@ -6,6 +6,8 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../../../theme/colors.dart';
 import '../../../../theme/styles.dart';
 import '../../domain/models/patient.dart';
+import '../../../../shared/services/api_service.dart';
+import '../../../../shared/services/auth_service.dart';
 
 // Local high-fidelity patient record model containing table details
 class PatientRecord {
@@ -32,7 +34,7 @@ class PatientRecord {
   String get initials {
     List<String> parts = name.split(' ');
     if (parts.length >= 2) {
-      return "${parts[0][0]}${parts[1][0]}".toUpperCase();
+      return "${parts[0][0]}${parts[parts.length - 1][0]}".toUpperCase();
     }
     return name.isNotEmpty ? name[0].toUpperCase() : "";
   }
@@ -48,46 +50,85 @@ class PatientsListScreen extends StatefulWidget {
 }
 
 class _PatientsListScreenState extends State<PatientsListScreen> {
-  // Paginated and seeded EMR patient records
-  final Map<int, List<PatientRecord>> _paginatedPatients = {
-    1: [
-      PatientRecord(id: "PT001", name: "John Smith", age: 45, gender: "Male", contact: "+1 (555) 392-8172", lastVisit: "2024-01-15", registeredDate: "2024-01-15", status: "Stable"),
-      PatientRecord(id: "PT002", name: "Sarah Johnson", age: 32, gender: "Female", contact: "+1 (555) 819-2034", lastVisit: "2024-01-12", registeredDate: "2024-01-15", status: "Stable"),
-      PatientRecord(id: "PT003", name: "Michael Brown", age: 58, gender: "Male", contact: "+1 (555) 728-1092", lastVisit: "2023-12-28", registeredDate: "2024-01-15", status: "Stable"),
-      PatientRecord(id: "PT004", name: "Emily Davis", age: 28, gender: "Female", contact: "+1 (555) 918-4720", lastVisit: "2024-01-18", registeredDate: "2024-01-15", status: "Stable"),
-      PatientRecord(id: "PT005", name: "Robert Wilson", age: 67, gender: "Male", contact: "+1 (555) 017-3810", lastVisit: "2024-01-10", registeredDate: "2024-01-15", status: "Stable"),
-      PatientRecord(id: "PT006", name: "Lisa Anderson", age: 41, gender: "Female", contact: "+1 (555) 293-8471", lastVisit: "2023-11-15", registeredDate: "2024-01-15", status: "Stable"),
-    ],
-    2: [
-      PatientRecord(id: "PT007", name: "James Carter", age: 36, gender: "Male", contact: "+1 (555) 829-1029", lastVisit: "2024-01-20", registeredDate: "2024-01-16", status: "Stable"),
-      PatientRecord(id: "PT008", name: "Maria Santos", age: 29, gender: "Female", contact: "+1 (555) 238-1930", lastVisit: "2024-01-19", registeredDate: "2024-01-16", status: "Stable"),
-      PatientRecord(id: "PT009", name: "David Miller", age: 52, gender: "Male", contact: "+1 (555) 910-3847", lastVisit: "2024-01-14", registeredDate: "2024-01-16", status: "Stable"),
-      PatientRecord(id: "PT010", name: "Amanda Taylor", age: 43, gender: "Female", contact: "+1 (555) 749-3029", lastVisit: "2024-01-17", registeredDate: "2024-01-17", status: "Warning"),
-      PatientRecord(id: "PT011", name: "Joseph White", age: 61, gender: "Male", contact: "+1 (555) 492-3810", lastVisit: "2024-01-11", registeredDate: "2024-01-17", status: "Stable"),
-      PatientRecord(id: "PT012", name: "Karen Clark", age: 38, gender: "Female", contact: "+1 (555) 938-4820", lastVisit: "2024-01-08", registeredDate: "2024-01-17", status: "Stable"),
-    ],
-    3: [
-      PatientRecord(id: "PT013", name: "Charles Thomas", age: 49, gender: "Male", contact: "+1 (555) 482-1940", lastVisit: "2024-01-07", registeredDate: "2024-01-18", status: "Stable"),
-      PatientRecord(id: "PT014", name: "Patricia Lewis", age: 57, gender: "Female", contact: "+1 (555) 304-9821", lastVisit: "2024-01-05", registeredDate: "2024-01-18", status: "Warning"),
-      PatientRecord(id: "PT015", name: "Daniel Hall", age: 31, gender: "Male", contact: "+1 (555) 923-8472", lastVisit: "2024-01-06", registeredDate: "2024-01-18", status: "Stable"),
-      PatientRecord(id: "PT016", name: "Elizabeth Allen", age: 25, gender: "Female", contact: "+1 (555) 819-3829", lastVisit: "2024-01-09", registeredDate: "2024-01-19", status: "Stable"),
-      PatientRecord(id: "PT017", name: "Matthew Young", age: 68, gender: "Male", contact: "+1 (555) 203-9182", lastVisit: "2024-01-04", registeredDate: "2024-01-19", status: "Critical"),
-      PatientRecord(id: "PT018", name: "Barbara King", age: 47, gender: "Female", contact: "+1 (555) 492-0193", lastVisit: "2024-01-03", registeredDate: "2024-01-19", status: "Stable"),
-    ],
-    475: [
-      PatientRecord(id: "PT2842", name: "Walter Harris", age: 74, gender: "Male", contact: "+1 (555) 829-1092", lastVisit: "2024-01-02", registeredDate: "2024-01-20", status: "Stable"),
-      PatientRecord(id: "PT2843", name: "Dorothy Martin", age: 66, gender: "Female", contact: "+1 (555) 919-4820", lastVisit: "2023-12-30", registeredDate: "2024-01-20", status: "Warning"),
-      PatientRecord(id: "PT2844", name: "Albert Jackson", age: 59, gender: "Male", contact: "+1 (555) 018-4729", lastVisit: "2023-12-25", registeredDate: "2024-01-20", status: "Stable"),
-      PatientRecord(id: "PT2845", name: "Margaret Chen", age: 72, gender: "Female", contact: "+1 (555) 019-2834", lastVisit: "2026-06-20", registeredDate: "2026-06-15", status: "Stable"),
-      PatientRecord(id: "PT2846", name: "Sarah Connor", age: 42, gender: "Female", contact: "+1 (555) 014-9821", lastVisit: "2026-06-20", registeredDate: "2026-06-15", status: "Critical"),
-      PatientRecord(id: "PT2847", name: "Marcus Vance", age: 67, gender: "Male", contact: "+1 (555) 019-2834", lastVisit: "2026-06-18", registeredDate: "2026-06-15", status: "Critical"),
-    ],
-  };
+  List<PatientRecord> _allPatients = [];
+  bool _loading = true;
+  String? _error;
 
   String _searchQuery = "";
   String _statusFilter = "All Status"; // "All Status", "Stable", "Warning", "Critical"
   int _currentPage = 1;
   final Set<String> _revealedContactIds = {};
+  @override
+  void initState() {
+    super.initState();
+    _loadPatients();
+  }
+
+  Future<void> _loadPatients() async {
+    if (!mounted) return;
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    try {
+      final role = AuthService.instance.session?.role;
+      final endpoint = role == UserRole.receptionist ? '/receptionist/patients' : '/doctor/patients';
+      final data = await ApiService.instance.get(endpoint);
+      final list = data as List;
+      
+      final List<PatientRecord> mapped = list.map((item) {
+        final name = '${item['first_name'] ?? ''} ${item['last_name'] ?? ''}'.trim();
+        final id = item['id']?.toString() ?? '';
+        final age = _calculateAge(item['dob']?.toString());
+        final gender = item['gender']?.toString() ?? 'Other';
+        final contact = item['phone']?.toString() ?? '—';
+        final lastVisit = item['last_visit']?.toString().split('T')[0] ?? '—';
+        final registeredDate = item['created_at']?.toString().split('T')[0] ?? '—';
+        final condition = item['condition']?.toString() ?? 'Stable';
+        
+        return PatientRecord(
+          id: id.substring(0, math.min(8, id.length)).toUpperCase(),
+          name: name.isNotEmpty ? name : 'Patient',
+          age: age,
+          gender: gender,
+          contact: contact,
+          lastVisit: lastVisit,
+          registeredDate: registeredDate,
+          status: condition,
+        );
+      }).toList();
+
+      if (mounted) {
+        setState(() {
+          _allPatients = mapped;
+          _loading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = 'Failed to load patients';
+          _loading = false;
+        });
+      }
+    }
+  }
+
+  int _calculateAge(String? dobStr) {
+    if (dobStr == null) return 30;
+    try {
+      final dob = DateTime.parse(dobStr);
+      final now = DateTime.now();
+      int age = now.year - dob.year;
+      if (now.month < dob.month || (now.month == dob.month && now.day < dob.day)) {
+        age--;
+      }
+      return age;
+    } catch (_) {
+      return 30;
+    }
+  }
 
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
@@ -101,25 +142,51 @@ class _PatientsListScreenState extends State<PatientsListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_loading) {
+      return const Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_error != null) {
+      return Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(_error!, style: GoogleFonts.inter(color: Colors.red.shade300)),
+              const SizedBox(height: 12),
+              ElevatedButton(
+                onPressed: _loadPatients,
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white),
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     final double screenWidth = MediaQuery.of(context).size.width;
     final bool isMobileLayout = screenWidth <= 768;
 
-    // Filter patients globally if searching/filtering, otherwise use page specific records
     final bool hasSearchOrFilter = _searchQuery.isNotEmpty || _statusFilter != "All Status";
     final List<PatientRecord> filteredPatients;
 
-    if (hasSearchOrFilter) {
-      final List<PatientRecord> allPatients = [];
-      _paginatedPatients.forEach((_, list) => allPatients.addAll(list));
+    final List<PatientRecord> searchFiltered = _allPatients.where((p) {
+      final matchesSearch = p.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          p.id.toLowerCase().contains(_searchQuery.toLowerCase());
+      final matchesStatus = _statusFilter == "All Status" || p.status == _statusFilter;
+      return matchesSearch && matchesStatus;
+    }).toList();
 
-      filteredPatients = allPatients.where((p) {
-        final matchesSearch = p.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-            p.id.toLowerCase().contains(_searchQuery.toLowerCase());
-        final matchesStatus = _statusFilter == "All Status" || p.status == _statusFilter;
-        return matchesSearch && matchesStatus;
-      }).toList();
+    if (hasSearchOrFilter) {
+      filteredPatients = searchFiltered;
     } else {
-      filteredPatients = _paginatedPatients[_currentPage] ?? [];
+      final int startIndex = (_currentPage - 1) * 6;
+      filteredPatients = searchFiltered.skip(startIndex).take(6).toList();
     }
 
     return SingleChildScrollView(
@@ -255,30 +322,35 @@ class _PatientsListScreenState extends State<PatientsListScreen> {
   Widget _buildKPICards(BuildContext context) {
     final double screenWidth = MediaQuery.of(context).size.width;
 
+    final total = _allPatients.length;
+    final followUp = _allPatients.where((p) => p.lastVisit != '—').length;
+    final males = _allPatients.where((p) => p.gender.toLowerCase() == 'male').length;
+    final females = _allPatients.where((p) => p.gender.toLowerCase() == 'female').length;
+
     final List<Widget> cards = [
       _InteractiveKPICard(
         label: "Total Patients",
-        value: "2,847",
+        value: "$total",
         icon: Icons.people_alt_outlined,
         color: AppColors.primary,
       ),
-      const _InteractiveKPICard(
+      _InteractiveKPICard(
         label: "Follow up / Review",
-        value: "1,000",
+        value: "$followUp",
         icon: Icons.loop_outlined,
-        color: Color(0xFFEF4444),
+        color: const Color(0xFFEF4444),
       ),
-      const _InteractiveKPICard(
+      _InteractiveKPICard(
         label: "Male Patients",
-        value: "1,000",
+        value: "$males",
         icon: Icons.male,
-        color: Color(0xFF24C06F),
+        color: const Color(0xFF24C06F),
       ),
-      const _InteractiveKPICard(
+      _InteractiveKPICard(
         label: "Female Patients",
-        value: "847",
+        value: "$females",
         icon: Icons.female,
-        color: Color(0xFFEC4899),
+        color: const Color(0xFFEC4899),
       ),
     ];
 

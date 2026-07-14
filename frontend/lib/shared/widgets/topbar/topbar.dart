@@ -12,6 +12,7 @@ import 'availability_dropdown.dart';
 import 'notification_button.dart';
 import 'profile_widget.dart';
 import '../../services/settings_manager.dart';
+import '../../services/auth_service.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 const _kGreen = Color(0xFF24C06F);
@@ -854,8 +855,9 @@ void _showProfileOverlay(BuildContext context) {
               const SizedBox(height: 6),
               _buildProfileOption(context, Icons.logout_outlined, 'Logout / Lock Session', () {
                 Navigator.of(context).pop();
+                AuthService.instance.logout();
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(backgroundColor: const Color(0xFF0C0E1F), content: Text('EMR clinic dashboard locked.', style: GoogleFonts.inter(color: Colors.white))),
+                  SnackBar(backgroundColor: const Color(0xFF0C0E1F), content: Text('Logged out successfully.', style: GoogleFonts.inter(color: Colors.white))),
                 );
               }, iconColor: const Color(0xFFEF4444), textColor: const Color(0xFFEF4444)),
             ],

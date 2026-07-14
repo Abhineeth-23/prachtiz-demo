@@ -1,4 +1,13 @@
 class AppRoutePaths {
+  // ── Auth ──────────────────────────────────────────────────────────────────
+  static const String roleSelect  = '/role-select';
+  static const String login       = '/login';
+  static const String signup      = '/signup';
+
+  static String loginPath(String role) => '/login?role=$role';
+  static String signupPath(String role) => '/signup?role=$role';
+
+  // ── Doctor (existing) ────────────────────────────────────────────────────
   static const String dashboard = '/';
   static const String analytics = '/analytics';
   static const String patientOverview = '/patient-overview';
@@ -25,4 +34,21 @@ class AppRoutePaths {
   static const String invoices = '/invoices';
   static const String services = '/services';
   static const String settings = '/settings';
+
+  // ── Receptionist ──────────────────────────────────────────────────────────
+  static const String receptionistDashboard = '/receptionist';
+  static const String receptionistPatients  = '/receptionist/patients';
+  static const String receptionistBilling   = '/receptionist/billing';
+  static const String receptionistTasks     = '/receptionist/tasks';
+  static const String receptionistSchedule  = '/receptionist/schedule';
+  static const String receptionistSettings  = '/receptionist/settings';
+
+  // ── Patient Portal ────────────────────────────────────────────────────────
+  static const String patientHome           = '/patient';
+  static const String patientAppointments   = '/patient/appointments';
+  static const String patientPrescriptions  = '/patient/prescriptions';
+  static const String patientLabResults     = '/patient/lab-results';
+  static const String patientVitals         = '/patient/vitals';
+  static const String patientBilling        = '/patient/billing';
+  static const String patientSettings       = '/patient/settings';
 }

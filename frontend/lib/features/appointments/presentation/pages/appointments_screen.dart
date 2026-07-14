@@ -4,6 +4,9 @@ import 'package:flutter_animate/flutter_animate.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_dimensions.dart';
 import '../../../../core/theme/app_radius.dart';
+import '../../../../shared/services/api_service.dart';
+import '../../../../shared/services/auth_service.dart';
+import 'dart:math' as math;
 
 // Local Appointment model for high-fidelity schedule simulation
 class LocalAppointment {
@@ -61,41 +64,86 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
   // Active calendar view modes: "Month", "Week", "Day"
   String _currentViewMode = "Month";
   
-  // Selected day for the timeline view (defaulting to 2026-06-16 matching June 16, 2026)
-  DateTime _selectedDate = DateTime(2026, 6, 16);
-  DateTime _currentMonth = DateTime(2026, 6, 1);
+  // Selected day for the timeline view (defaulting dynamically to today)
+  DateTime _selectedDate = DateTime.now();
+  DateTime _currentMonth = DateTime(DateTime.now().year, DateTime.now().month, 1);
 
-  // Initial list of appointments across June 2026
-  final List<LocalAppointment> _appointmentsList = [
-    // June 14
-    LocalAppointment(id: "AP-101", patientName: "Clara Jones", doctorName: "Dr. Robert Kim", time: "09:30", endTime: "10:00", date: "2026-06-14", type: "Consultation", status: "Completed"),
-    
-    // June 15
-    LocalAppointment(id: "AP-102", patientName: "Marcus Vance", doctorName: "Dr. Sarah Mitchell", time: "10:00", endTime: "10:30", date: "2026-06-15", type: "Follow-up", status: "Completed"),
-    
-    // June 16
-    LocalAppointment(id: "AP-103", patientName: "David Thompson", doctorName: "Dr. Michael Torres", time: "10:30", endTime: "11:00", date: "2026-06-16", type: "Telehealth", status: "Confirmed"),
-    LocalAppointment(id: "AP-104", patientName: "Sophia Andersson", doctorName: "Dr. Sarah Mitchell", time: "11:00", endTime: "11:30", date: "2026-06-16", type: "Check-up", status: "Cancelled"),
-    LocalAppointment(id: "AP-105", patientName: "James Okafor", doctorName: "Dr. Robert Kim", time: "11:30", endTime: "12:00", date: "2026-06-16", type: "Emergency", status: "Completed"),
-    LocalAppointment(id: "AP-106", patientName: "Aisha Mahmoud", doctorName: "Dr. Michael Torres", time: "13:00", endTime: "13:30", date: "2026-06-16", type: "Consultation", status: "Confirmed"),
-    
-    // June 17
-    LocalAppointment(id: "AP-107", patientName: "Aisha Mahmoud", doctorName: "Dr. Michael Torres", time: "13:00", endTime: "13:30", date: "2026-06-17", type: "Consultation", status: "Confirmed"),
-    LocalAppointment(id: "AP-108", patientName: "Emily Watson", doctorName: "Dr. Sarah Mitchell", time: "13:30", endTime: "14:00", date: "2026-06-17", type: "Follow-up", status: "Pending"),
-    
-    // June 18
-    LocalAppointment(id: "AP-109", patientName: "Robert Nakamura", doctorName: "Dr. Sarah Mitchell", time: "14:00", endTime: "14:30", date: "2026-06-18", type: "Telehealth", status: "Confirmed"),
-    
-    // June 19
-    LocalAppointment(id: "AP-110", patientName: "Thomas Bergstrom", doctorName: "Dr. Robert Kim", time: "14:30", endTime: "15:00", date: "2026-06-19", type: "Check-up", status: "Confirmed"),
-    
-    // June 20
-    LocalAppointment(id: "AP-111", patientName: "Elena Vasquez", doctorName: "Dr. Angela Park", time: "09:00", endTime: "09:30", date: "2026-06-20", type: "Check-up", status: "Confirmed"),
-    LocalAppointment(id: "AP-112", patientName: "William Frost", doctorName: "Dr. Angela Park", time: "15:00", endTime: "15:30", date: "2026-06-20", type: "Consultation", status: "Confirmed"),
-    
-    // June 21
-    LocalAppointment(id: "AP-113", patientName: "Priya Patel", doctorName: "Dr. Michael Torres", time: "15:30", endTime: "16:00", date: "2026-06-21", type: "Emergency", status: "Confirmed"),
-  ];
+  // Dynamic list of appointments from database
+  final List<LocalAppointment> _appointmentsList = [];
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAppointments();
+  }
+
+  Future<void> _loadAppointments() async {
+    if (!mounted) return;
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    try {
+      final role = AuthService.instance.session?.role;
+      final endpoint = role == UserRole.receptionist ? '/receptionist/appointments?date=all' : '/doctor/appointments';
+      final data = await ApiService.instance.get(endpoint);
+      final list = data as List;
+      
+      final List<LocalAppointment> mapped = list.map((item) {
+        final id = item['id']?.toString() ?? '';
+        final name = item['patient_name']?.toString() ?? 'Patient';
+        final doctorName = role == UserRole.doctor
+            ? 'Dr. ${AuthService.instance.session?.fullName ?? ''}'
+            : 'Dr. ${item['doctor_first_name'] ?? ''} ${item['doctor_last_name'] ?? ''}'.trim();
+        
+        final time = item['time']?.toString() ?? '09:00';
+        final endTime = item['end_time']?.toString() ?? '09:30';
+        final date = item['date']?.toString().split('T')[0] ?? '';
+        final type = item['consult_type'] ?? item['type'] ?? 'Consultation';
+        
+        String status = 'Confirmed';
+        final rawStatus = item['status']?.toString().toLowerCase();
+        if (rawStatus == 'cancelled') {
+          status = 'Cancelled';
+        } else if (rawStatus == 'completed') {
+          status = 'Completed';
+        } else if (rawStatus == 'pending') {
+          status = 'Pending';
+        } else if (rawStatus == 'inprogress') {
+          status = 'In Progress';
+        }
+
+        return LocalAppointment(
+          id: id.substring(0, math.min(8, id.length)).toUpperCase(),
+          patientName: name,
+          doctorName: doctorName.isNotEmpty ? doctorName : 'Doctor',
+          time: time,
+          endTime: endTime,
+          date: date,
+          type: type,
+          status: status,
+        );
+      }).toList();
+
+      if (mounted) {
+        setState(() {
+          _appointmentsList.clear();
+          _appointmentsList.addAll(mapped);
+          _loading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = 'Failed to load appointments';
+          _loading = false;
+        });
+      }
+    }
+  }
 
   // Helper date utility to format DateTime to "YYYY-MM-DD"
   String _formatDateString(DateTime date) {
@@ -146,6 +194,33 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_loading) {
+      return const Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_error != null) {
+      return Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(_error!, style: GoogleFonts.inter(color: Colors.red.shade300)),
+              const SizedBox(height: 12),
+              ElevatedButton(
+                onPressed: _loadAppointments,
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white),
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     final String dateStr = _formatDateString(_selectedDate);
     final List<LocalAppointment> selectedDateAppointments = _getAppointmentsForDate(_selectedDate);
     
@@ -153,11 +228,12 @@ class _AppointmentsScreenState extends State<AppointmentsScreen> {
     selectedDateAppointments.sort((a, b) => a.time.compareTo(b.time));
 
     // Summary numbers for Today
-    final todayAppointments = _appointmentsList.where((app) => app.date == "2026-06-16").toList();
+    final todayStr = _formatDateString(DateTime.now());
+    final todayAppointments = _appointmentsList.where((app) => app.date == todayStr).toList();
     final totalCount = todayAppointments.length;
-    final inPersonCount = todayAppointments.where((app) => app.type != "Telehealth").length;
-    final telehealthCount = todayAppointments.where((app) => app.type == "Telehealth").length;
-    final cancelledCount = todayAppointments.where((app) => app.status == "Cancelled").length;
+    final inPersonCount = todayAppointments.where((app) => app.type.toLowerCase() != "telehealth").length;
+    final telehealthCount = todayAppointments.where((app) => app.type.toLowerCase() == "telehealth").length;
+    final cancelledCount = todayAppointments.where((app) => app.status.toLowerCase() == "cancelled").length;
 
     return Scaffold(
       backgroundColor: Colors.transparent,
